@@ -1,30 +1,36 @@
+# main.py
 import os
 import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
-import asyncio
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
+# Логи
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
+log = logging.getLogger("bot")
 
-TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+# Берём токен из переменной окружения Render
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+if not TOKEN or not TOKEN.strip():
+    log.error("TELEGRAM_TOKEN не задан в переменных окружения. Открой Render → Environment и проверь.")
+    raise SystemExit(1)
 
-async def cmd_start(update, context):
-    await update.message.reply_text("Привет! Бот онлайн.")
+# --- Временные простые хэндлеры для проверки ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✅ Бот запущен и слышит вас!")
 
-def build_app():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lambda u, c: None))
-    return app
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(update.message.text)
 
-async def main():
-    app = build_app()
-    # ключ: чистим вебхук и сбрасываем накопившиеся апдейты
-    await app.bot.delete_webhook(drop_pending_updates=True)
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.wait()
+def main():
+    app = Application.builder().token(TOKEN).build()
+
+    # Временные хэндлеры (заменишь на свои после проверки)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    log.info("Starting polling…")
+    # Сбрасываем старые накопившиеся апдейты, чтобы не было конфликтов
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
