@@ -2,35 +2,50 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-# Логи
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 log = logging.getLogger("bot")
 
-# Берём токен из переменной окружения Render
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-if not TOKEN or not TOKEN.strip():
-    log.error("TELEGRAM_TOKEN не задан в переменных окружения. Открой Render → Environment и проверь.")
-    raise SystemExit(1)
 
-# --- Временные простые хэндлеры для проверки ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✅ Бот запущен и слышит вас!")
+# ----- handlers -----
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Привет! Я живой. Напиши что‑нибудь – отвечу тем же.")
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(update.message.text)
+async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("✅ Бот запущен и работает.")
 
-def main():
-    app = Application.builder().token(TOKEN).build()
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # отвечает тем же текстом
+    if update.message and update.message.text:
+        await update.message.reply_text(update.message.text)
 
-    # Временные хэндлеры (заменишь на свои после проверки)
-    app.geHandler(filters.TEXT & ~filters.COMMAND, echo))
-add_handler(CommandHandler("start", start))
-    app.add_handler(Messa
-    log.info("Starting polling…")
-    # Сбрасываем старые накопившиеся апдейты, чтобы не было конфликтов
-    app.run_polling(drop_pending_updates=True)
+
+def build_app():
+    token = os.environ.get("TELEGRAM_TOKEN")
+    if not token:
+        raise RuntimeError("TELEGRAM_TOKEN env var is not set")
+
+    app = ApplicationBuilder().token(token).build()
+
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("status", cmd_status))
+    # ВАЖНО: правильно написано add_handler и используется ~ (тильда), а не минус
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    return app
+
 
 if __name__ == "__main__":
-    main()
+    application = build_app()
+    # для Render достаточно обычного polling
+    application.run_polling(close_loop=False)
