@@ -25,9 +25,9 @@ def main():
     app = Application.builder().token(TOKEN).build()
 
     # Временные хэндлеры (заменишь на свои после проверки)
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
+    app.geHandler(filters.TEXT & ~filters.COMMAND, echo))
+add_handler(CommandHandler("start", start))
+    app.add_handler(Messa
     log.info("Starting polling…")
     # Сбрасываем старые накопившиеся апдейты, чтобы не было конфликтов
     app.run_polling(drop_pending_updates=True)
